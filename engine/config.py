@@ -1,0 +1,1 @@
+ASSITANT_NAME = "zara"
