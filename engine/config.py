@@ -1,1 +1,0 @@
-ASSITANT_NAME = "zara"

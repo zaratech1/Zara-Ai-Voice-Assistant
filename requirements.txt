@@ -1,0 +1,7 @@
+eel==0.18.2
+SpeechRecognition==3.14.4
+PyAudio==0.2.14
+pyttsx3==2.99
+playsound==1.2.2
+pywhatkit==5.4
+openwakeword==0.6.0
