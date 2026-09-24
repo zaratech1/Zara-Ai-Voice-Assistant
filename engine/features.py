@@ -1,23 +1,27 @@
 import os
 import re
+import shutil
 import webbrowser
 import urllib.parse  
+from pathlib import Path
 from playsound import playsound
 from engine.config import ASSITANT_NAME
-from engine.command import speak  
-import pywhatkit as kit
+from engine.command import speak
 
 # Play startup sound
 def playAssistantsound():
-    music_dir = "front\\assets\\audio\\start_sound.mp3"
-    playsound(music_dir)
+    music_dir = Path(__file__).resolve().parent.parent / "front" / "assets" / "audio" / "start_sound.mp3"
+    try:
+        playsound(str(music_dir))
+    except Exception as error:
+        print(f"Could not play startup sound: {error}")
 
 
 def openCommand(query):
     # Clean text
     query = query.lower()
     query = query.replace(ASSITANT_NAME.lower(), "")
-    query = query.replace("open", "")
+    query = re.sub(r"^open\s+", "", query)
     query = query.strip()
 
     if query == "":
@@ -57,22 +61,23 @@ def openCommand(query):
         return
 
     # ------ 1) SPECIAL APPS (only few apps manual) ------
-    apps = {
-        "vs code": r'"C:\Users\YourUserName\AppData\Local\Programs\Microsoft VS Code\Code.exe"',
-        "vscode": r'"C:\Users\YourUserName\AppData\Local\Programs\Microsoft VS Code\Code.exe"'
-        # add only apps that don't open automatically
-    }
-
-    for name, path in apps.items():
-        if name in query:
-            speak(f"opening {name}")
-            os.system(f'start "" {path}')
-            return
+    if query in ("vs code", "vscode", "visual studio code"):
+        code = shutil.which("code") or shutil.which("Code.exe")
+        if code:
+            speak("opening VS Code")
+            os.startfile(code)
+        else:
+            speak("VS Code is not installed or is not on your PATH")
+        return
 
     # ------ 2) Try opening as website (.com) ------
     # e.g. "open youtube" -> https://youtube.com
-    sitename = query.split()[-1]   # last word → youtube, instagram etc.
-    url = f"https://{sitename}.com"
+    sitename = query.strip()
+    if " " in sitename:
+        speak(f"searching {sitename}")
+        webbrowser.open(f"https://www.google.com/search?q={urllib.parse.quote(sitename)}")
+        return
+    url = sitename if sitename.startswith(("https://", "http://")) else f"https://{sitename if '.' in sitename else sitename + '.com'}"
 
     speak(f"opening {sitename}")
     webbrowser.open(url)
@@ -80,8 +85,16 @@ def openCommand(query):
 
 def playYoutube(query):
     search_term = extract_yt_term(query)
-    speak("playing"+search_term+"on youtube")
-    kit.playonyt(search_term)
+    if not search_term:
+        speak("What should I play on YouTube?")
+        return
+    speak(f"playing {search_term} on youtube")
+    try:
+        import pywhatkit as kit
+        kit.playonyt(search_term)
+    except Exception as error:
+        print(f"YouTube playback unavailable: {error}")
+        webbrowser.open(f"https://www.youtube.com/results?search_query={urllib.parse.quote(search_term)}")
 
 def extract_yt_term(command):
     pattern = r'play\s+(.*?)\s+on\s+youtube'

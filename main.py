@@ -1,14 +1,13 @@
-import os
 import eel
+from pathlib import Path
 
-from engine.features import *
-from engine.command import *
+from engine.command import allCommands  # Register the Eel command endpoint.
+from engine.features import playAssistantsound
 
-eel.init('front')
+eel.init(str(Path(__file__).resolve().parent / 'front'))
 
-
-os.system('start msedge.exe --app="http://localhost:8000/index.html"')
-playAssistantsound()
-eel.start('index.html', mode=None, host='localhost', block=True) 
+if __name__ == '__main__':
+    playAssistantsound()
+    eel.start('index.html', mode='edge', host='localhost', block=True)
 
 

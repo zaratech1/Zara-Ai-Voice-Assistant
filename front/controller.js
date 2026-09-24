@@ -3,8 +3,10 @@ $(document).ready(function () {
     //display speak messages
     eel.expose(DisplayMessage)
     function DisplayMessage(message) {
-        $(".siri-message li:first").text(message);
-        $('.siri-message').textillate('start');
+        $(".siri-message").text(message);
+        if ($.fn.textillate) {
+            $('.siri-message').textillate({ in: { effect: "fadeIn" } });
+        }
     }
 
     //DISPLAY HOOD
@@ -12,6 +14,7 @@ $(document).ready(function () {
     function ShowHood() {
         $("#oval").attr("hidden", false);
         $("#SiriWave").attr("hidden", true);
+        $(".greeting-message").text($(".siri-message").text());
     }
 
 

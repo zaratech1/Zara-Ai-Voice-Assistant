@@ -1,50 +1,55 @@
 import pyttsx3
 import speech_recognition as sr
 import eel
-import time
 
 
 
 def speak(text):
-    engine = pyttsx3.init('sapi5')
-    voices = engine.getProperty('voices')
-    engine.setProperty('voice', voices[1].id)
-    engine.setProperty('rate', 174) 
     eel.DisplayMessage(text)
-    engine.say(text)
-    engine.runAndWait()
+    try:
+        engine = pyttsx3.init('sapi5')
+        voices = engine.getProperty('voices')
+        if voices:
+            engine.setProperty('voice', voices[min(1, len(voices) - 1)].id)
+        engine.setProperty('rate', 174)
+        engine.say(text)
+        engine.runAndWait()
+    except Exception as error:
+        print(f"Text-to-speech unavailable: {error}")
 
 
 def takecommand():
     r = sr.Recognizer()
-
-    with sr.Microphone() as source:
-        print('Listening...')
-        eel.DisplayMessage('Listening...')
-        r.pause_threshold = 1
-        r.adjust_for_ambient_noise(source)
-
-        audio = r.listen(source, 10, 6)
-    
     try:
+        with sr.Microphone() as source:
+            print('Listening...')
+            eel.DisplayMessage('Listening...')
+            r.pause_threshold = 1
+            r.adjust_for_ambient_noise(source, duration=0.5)
+            audio = r.listen(source, timeout=10, phrase_time_limit=6)
+
         print('Recognizing')
         eel.DisplayMessage('Recognizing...')
-        query = r.recognize_google(audio, language= 'en-in')
+        query = r.recognize_google(audio, language='en-IN')
         print(f"user said: {query}")
         eel.DisplayMessage(query)
-        time.sleep(1)
-       
-        
-    except Exception as e:
+    except (sr.WaitTimeoutError, sr.UnknownValueError):
         return ""
+    except (sr.RequestError, OSError, AttributeError) as error:
+        print(f"Speech recognition unavailable: {error}")
+        eel.DisplayMessage("Microphone or speech recognition is unavailable. Type a command instead.")
+        return None
 
     return query.lower()
 
 @eel.expose
-def allCommands():
+def allCommands(command=None):
     try:
-        query = takecommand()
+        query = command.strip().lower() if isinstance(command, str) else takecommand()
         print("Query:", query)
+
+        if query is None:
+            return
 
         # If nothing was heard / recognized
         if not query:
@@ -52,18 +57,22 @@ def allCommands():
             eel.DisplayMessage("I didn't catch that.")
             return
 
-        if "open" in query:
-            from engine.features import openCommand
-            openCommand(query)
-
-        elif "on youtube" in query:
+        if query.startswith("play ") and query.endswith(" on youtube"):
             from engine.features import playYoutube
             playYoutube(query)
+
+        elif query == "open" or query.startswith("open "):
+            from engine.features import openCommand
+            openCommand(query)
 
         else:
             # This is your "not run" situation
             print("not run")
             eel.DisplayMessage("I don't know how to handle that yet.")
+
+    except Exception as error:
+        print(f"Command failed: {error}")
+        eel.DisplayMessage("Sorry, that command failed. Please try again.")
 
     finally:
         # This will run even if an error happens above
